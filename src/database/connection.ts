@@ -1,11 +1,15 @@
-import 'dotenv/config';
 import { Pool } from 'pg';
+import 'dotenv/config';
 
-const sql = new Pool({
+const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false,
-    },
+    ssl: process.env.NODE_ENV === 'production'
+        ? { rejectUnauthorized: false }
+        : false
 });
 
-export default sql;
+pool.query('SELECT NOW()')
+    .then(() => console.log('✅ PostgreSQL connected'))
+    .catch(err => console.error('❌ Connection error:', err));
+
+export default pool;

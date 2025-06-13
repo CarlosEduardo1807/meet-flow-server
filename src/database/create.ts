@@ -1,6 +1,6 @@
 import sql from './connection';
 
-export async function execute() {
+export async function create() {
     try {
         await sql.query(`
       CREATE TABLE users (
@@ -46,4 +46,4 @@ export async function execute() {
     }
 }
 
-execute()
+create()
