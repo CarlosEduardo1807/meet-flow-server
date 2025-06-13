@@ -13,8 +13,17 @@ export const UserSchema = z.object({
         .max(100),
     password: z.string()
         .min(6, "Password must be at least 6 characters")
-        .max(255),
+        .max(255)
+        .optional(),
     created_at: z.date().optional()
+});
+
+export const ListUserShema = z.object({
+    id: z.string().uuid().optional(),
+    name: z.string().optional(),
+    email: z.string().optional(),
+    password: z.string().optional(),
+    created_at: z.date().optional(),
 });
 
 export const CreateUserSchema = UserSchema.omit({
@@ -28,5 +37,4 @@ export const UpdateUserSchema = CreateUserSchema.partial();
 export type User = z.infer<typeof UserSchema>;
 export type CreateUser = z.infer<typeof CreateUserSchema>;
 export type UpdateUser = z.infer<typeof UpdateUserSchema>;
-
-
+export type ListUser = z.infer<typeof ListUserShema>;

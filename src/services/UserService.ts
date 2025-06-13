@@ -1,7 +1,7 @@
 import sql from '../database/connection';
-import { CreateUserSchema, UpdateUserSchema, type User } from '../types/users.type'
+import { CreateUserSchema, UpdateUserSchema, ListUserShema, type User, type ListUser } from '../types/users.type'
 import { z } from 'zod';
-import { generatePassword } from '../utils/utils';
+import { generatePassword, validateId } from '../utils/utils';
 
 //const SALT_ROUNDS = 10;
 //
@@ -94,14 +94,61 @@ import { generatePassword } from '../utils/utils';
 export class UserService {
 
     static async createUser(data: z.infer<typeof CreateUserSchema>): Promise<User> {
-        const password = generatePassword()
+        const password = data.password ?? generatePassword();
         const { rows: [user] } = await sql.query<User>(`
               INSERT INTO users (name, email, password)
               VALUES ($1, $2, $3)
-              RETURNING id, name, email, created_at;
+              RETURNING *;
             `, [data.name, data.email, password]);
 
         return user;
+    }
+
+    static async findById(id: string): Promise<User | null> {
+        if (!validateId(id)) return null
+        const { rows: [user] } = await sql.query<User>(
+            `SELECT * FROM users WHERE id = $1`,
+            [id]
+        );
+        return user || null;
+    }
+
+    static async listUsers(params: z.infer<typeof ListUserShema>): Promise<ListUser[]> {
+        const filters: string[] = [];
+        const values: any[] = [];
+        let paramCount = 1;
+
+        if (params.id) {
+            filters.push(`id = $${paramCount}`);
+            values.push(params.id);
+            paramCount++;
+        }
+
+        if (params.name) {
+            filters.push(`name ILIKE $${paramCount}`);
+            values.push(`%${params.name}%`);
+            paramCount++;
+        }
+
+        if (params.email) {
+            filters.push(`email = $${paramCount}`);
+            values.push(params.email);
+            paramCount++;
+        }
+
+        if (params.created_at) {
+            filters.push(`DATE(created_at) = $${paramCount}`);
+            values.push(params.created_at);
+            paramCount++;
+        }
+
+        const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
+
+        const { rows } = await sql.query<User>(`
+          SELECT * FROM users ${whereClause} ORDER BY created_at DESC`, values);
+
+        return rows;
+
     }
 
 }
