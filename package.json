@@ -6,14 +6,17 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "db": "tsx src/database/sql.ts"
+    "db": "tsx src/database/sql.ts",
+    "db:drop": "tsx src/database/drop.ts"
   },
   "packageManager": "pnpm@10.11.1",
   "devDependencies": {
+    "@prisma/client": "^6.9.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^20.0.0",
     "@types/pg": "^8.15.4",
+    "prisma": "^6.9.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.2",
     "typescript": "^5.8.3"

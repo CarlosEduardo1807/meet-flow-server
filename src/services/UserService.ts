@@ -1,154 +1,93 @@
-import sql from '../database/connection';
-import { CreateUserSchema, UpdateUserSchema, ListUserShema, type User, type ListUser } from '../types/users.type'
+import { CreateUserSchema, UpdateUserSchema, ListUserShema, type User, type ListUser, ValidateAccessUserSchema, ValidateAccessUser } from '../types/UserType';
+import { generatePassword, toDatabaseDate, validateId } from '../../src/utils/utils';
 import { z } from 'zod';
-import { generatePassword, validateId } from '../utils/utils';
+import { PrismaClient } from '../generated/prisma';
 
-//const SALT_ROUNDS = 10;
-//
-//export class UserService {
-//   
-//    // Create
-//    static async create(data: z.infer<typeof CreateUserSchema>): Promise<User> {
-//        const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
-//
-//        const { rows: [user] } = await sql.query<User>(`
-//      INSERT INTO users (name, email, password_hash)
-//      VALUES ($1, $2, $3)
-//      RETURNING id, name, email, created_at;
-//    `, [data.name, data.email, hashedPassword]);
-//
-//        return user;
-//    }
-//
-//    // Read
-//    static async findById(id: string): Promise<User | null> {
-//        const { rows: [user] } = await sql.query<User>(`
-//      SELECT id, name, email, created_at 
-//      FROM users WHERE id = $1;
-//    `, [id]);
-//        return user || null;
-//    }
-//
-//    static async findByEmail(email: string): Promise<User | null> {
-//        const { rows: [user] } = await sql.query<User>(`
-//      SELECT * FROM users WHERE email = $1;
-//    `, [email]);
-//        return user || null;
-//    }
-//
-//    // Update
-//    static async update(id: string, data: z.infer<typeof UpdateUserSchema>): Promise<User | null> {
-//        let updates: string[] = [];
-//        let values: any[] = [];
-//        let counter = 1;
-//
-//        if (data.name) {
-//            updates.push(`name = $${counter}`);
-//            values.push(data.name);
-//            counter++;
-//        }
-//
-//        if (data.email) {
-//            updates.push(`email = $${counter}`);
-//            values.push(data.email);
-//            counter++;
-//        }
-//
-//        if (data.password) {
-//            const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
-//            updates.push(`password_hash = $${counter}`);
-//            values.push(hashedPassword);
-//            counter++;
-//        }
-//
-//        if (updates.length === 0) return null;
-//
-//        const { rows: [user] } = await sql.query<User>(`
-//      UPDATE users
-//      SET ${updates.join(', ')}
-//      WHERE id = $${counter}
-//      RETURNING id, name, email;
-//    `, [...values, id]);
-//
-//        return user || null;
-//    }
-//
-//    // Delete
-//    static async delete(id: string): Promise<boolean> {
-//        const { rowCount } = await sql.query(`
-//      DELETE FROM users WHERE id = $1;
-//    `, [id]);
-//        return rowCount > 0;
-//    }
-//
-//    // List all
-//    static async listAll(): Promise<User[]> {
-//        const { rows } = await sql.query<User>(`
-//      SELECT id, name, email, created_at 
-//      FROM users ORDER BY created_at DESC;
-//    `);
-//        return rows;
-//    }
-//}
+const prisma = new PrismaClient();
 
 export class UserService {
 
     static async createUser(data: z.infer<typeof CreateUserSchema>): Promise<User> {
         const password = data.password ?? generatePassword();
-        const { rows: [user] } = await sql.query<User>(`
-              INSERT INTO users (name, email, password)
-              VALUES ($1, $2, $3)
-              RETURNING *;
-            `, [data.name, data.email, password]);
+        return await prisma.user.create({
+            data: {
+                name: data.name,
+                email: data.email,
+                password: password
+            }
+        });
+    }
 
-        return user;
+    static async updateUser(id: string, data: z.infer<typeof UpdateUserSchema>): Promise<User> {
+        return prisma.user.update({
+            where: { id },
+            data: {
+                name: data.name,
+                email: data.email,
+                password: data.password,
+                updatedAt: new Date(),
+                createdAt: toDatabaseDate(data.created_at)
+            }
+        });
     }
 
     static async findById(id: string): Promise<User | null> {
-        if (!validateId(id)) return null
-        const { rows: [user] } = await sql.query<User>(
-            `SELECT * FROM users WHERE id = $1`,
-            [id]
-        );
-        return user || null;
+        if (!validateId(id)) return null;
+        return prisma.user.findUnique({
+            where: { id }
+        });
+    }
+
+    static async deleteUserById(id: string): Promise<void> {
+        if (!validateId(id)) return;
+        await prisma.user.delete({
+            where: { id }
+        });
+    }
+
+    static async validateAccess(data: z.infer<typeof ValidateAccessUserSchema>): Promise<User | null> {
+        return await prisma.user.findFirst({
+            where: {
+                email: data.email,
+                password: data.password
+            }
+        })
     }
 
     static async listUsers(params: z.infer<typeof ListUserShema>): Promise<ListUser[]> {
-        const filters: string[] = [];
-        const values: any[] = [];
-        let paramCount = 1;
+        const where: any = {};
 
         if (params.id) {
-            filters.push(`id = $${paramCount}`);
-            values.push(params.id);
-            paramCount++;
+            where.id = params.id;
         }
 
         if (params.name) {
-            filters.push(`name ILIKE $${paramCount}`);
-            values.push(`%${params.name}%`);
-            paramCount++;
+            where.name = {
+                contains: params.name,
+                mode: 'insensitive'
+            };
         }
 
         if (params.email) {
-            filters.push(`email = $${paramCount}`);
-            values.push(params.email);
-            paramCount++;
+            where.email = params.email;
         }
 
-        if (params.created_at) {
-            filters.push(`DATE(created_at) = $${paramCount}`);
-            values.push(params.created_at);
-            paramCount++;
+        if (params.password) {
+            where.password = params.password;
         }
 
-        const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
+        if (params.createdAt) {
+            where.created_at = {
+                equals: params.createdAt
+            };
+        }
 
-        const { rows } = await sql.query<User>(`
-          SELECT * FROM users ${whereClause} ORDER BY created_at DESC`, values);
-
-        return rows;
-
+        return await prisma.user.findMany({
+            where,
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
     }
 
 }

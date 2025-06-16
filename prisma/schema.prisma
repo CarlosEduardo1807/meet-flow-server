@@ -1,0 +1,59 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String        @id @default(uuid()) @db.Uuid
+  name       String        @db.VarChar(100)
+  email      String?       @unique @db.VarChar(100)
+  password   String?       @db.VarChar(255)
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt  DateTime      @updatedAt @map("updated_at") @db.Timestamp(6)
+  meetings   Meeting[]     @relation("MeetingOrganizer")
+  participants Participant[]
+
+  @@map("users")
+}
+
+model Meeting {
+  id            String        @id @default(uuid()) @db.Uuid
+  title         String        @db.VarChar(100)
+  description   String?       @db.Text
+  startTime     DateTime      @map("start_time") @db.Timestamp(6)
+  endTime       DateTime?     @map("end_time") @db.Timestamp(6)
+  organizerId   String        @map("organizer_id") @db.Uuid
+  organizerName String?       @map("organizer_name") @db.VarChar(100)
+  meetingLink   String?       @unique @map("meeting_link") @db.VarChar(100)
+  status        String        @default("scheduled") @db.VarChar(20)
+  sdkMeetingId  String?       @map("sdk_meeting_id") @db.VarChar(255)
+  sdkToken      String?       @map("sdk_token") @db.VarChar(255)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamp(6)
+  organizer     User          @relation("MeetingOrganizer", fields: [organizerId], references: [id])
+  participants  Participant[]
+
+  @@map("meetings")
+  @@index([organizerId], name: "idx_meeting_organizer")
+}
+
+model Participant {
+  id        String   @id @default(uuid()) @db.Uuid
+  meetingId String   @map("meeting_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  joinedAt  DateTime @default(now()) @map("joined_at") @db.Timestamp(6)
+  leftAt    DateTime? @map("left_at") @db.Timestamp(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+  meeting   Meeting  @relation(fields: [meetingId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("participants")
+  @@index([meetingId], name: "idx_participant_meeting")
+}

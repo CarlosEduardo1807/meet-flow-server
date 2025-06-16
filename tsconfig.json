@@ -9,6 +9,10 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "src"
+    "src",
+    "antes/api",
+    "antes/models",
+    "antes/services",
+    "antes/types"
   ]
 }

@@ -39,7 +39,6 @@ out/
 tmp/
 temp/
 
-
 # TypeScript
 *.tsbuildinfo
 
@@ -52,3 +51,11 @@ temp/
 *.pem
 *.crt
 *.key
+/src/generated/prisma
+
+# Prisma
+/prisma/migrations
+/prisma/*.db
+/prisma/*.db-journal
+/prisma/.env
+!/prisma/schema.prisma

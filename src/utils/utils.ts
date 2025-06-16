@@ -10,3 +10,36 @@ export const validateId = (id: string): boolean => {
     }
     return true
 }
+
+export const toDatabaseDate = (date?: string | Date): Date | undefined => {
+    if (!date) return undefined;
+    return new Date(date);
+}
+
+export const reqGet = async (url: string, headers?: any): Promise<any> => {
+    try {
+        await fetch(url, {
+            method: "GET",
+            headers: headers,
+            cache: "no-cache"
+        }).then((res) => {
+            return res.json()
+        })
+    } catch (error) {
+        return error
+    }
+}
+
+export const reqPost = async (url: string, body?: any, headers?: any): Promise<any> => {
+    try {
+        const req = await fetch(url, {
+            method: "POST",
+            headers: headers || {},
+            body: JSON.stringify(body || {})
+        })
+        const res = await req.json()
+        return res
+    } catch (error) {
+        return error
+    }
+}
