@@ -9,10 +9,13 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "src",
+    "antigo/src",
     "antes/api",
     "antes/models",
     "antes/services",
-    "antes/types"
+    "antes/types",
+    "src/utils",
+    "src/generated",
+    "src/models/ResponseApi.ts"
   ]
 }

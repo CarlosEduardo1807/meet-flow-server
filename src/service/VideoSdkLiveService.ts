@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { reqGet, reqPost } from '../utils/utils';
+import { reqGet, reqPost } from '../utils/utils'
 
 export class VideoSdkLiveService {
 

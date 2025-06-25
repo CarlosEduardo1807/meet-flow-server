@@ -1,19 +1,20 @@
 import express, { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
-import userRouter from './api/user.api';
-import meetingsRouter from './api/meeting.api';
-import { errorHandler } from './middleware/error_middeware';
+import { errorHandler } from './middleware/error';
+// import userRouter from './api/user.api';
+import meetingRouter from './api/MeetingApi';
+import participantRouter from './api/ParticipantApi'
 
 const server = express();
 
 server.use(cors());
 server.use(express.json());
 
-server.use('/api/user', userRouter);
-server.use('/api/mettings', meetingsRouter);
-
 server.use((err: any, req: Request, res: Response, next: NextFunction) => {
     errorHandler(err, req, res, next);
 });
+
+server.use('/api/meeting', meetingRouter);
+server.use('/api/participant', participantRouter);
 
 export default server;
